@@ -1,8 +1,15 @@
 from pygame import *
+from random import *
 
 init()
+font.init()
 info = display.Info()
 window = display.set_mode((info.current_w, info.current_h), RESIZABLE)
+font_1 = font.Font(None, info.current_h//20)
+def update_score():
+    text_score = font_1.render(str(ball.p1) + "-" + str(ball.p2), True, (20, 255, 40))
+    window.blit(text_score, (info.current_w//2, info.current_h//9))
+
 class Unit():
     def __init__(self, file, x, y, w, h, speed_x, speed_y):
         self.file = image.load(file)
@@ -27,7 +34,24 @@ class Player(Unit):
     def make_hitbox(self):
         self.hitbox = Rect(0, 0, info.current_w//100, info.current_h//5)
 
+class Wall(Unit):
+    can_move = True
+    def move(self):
+        self.hitbox.centerx = self.rect.centerx
+        self.hitbox.centery = self.rect.centery
+        self.speed = self.speed_y + ball.p1 - ball.p2
+        if self.can_move:
+            if ball.rect.y > self.rect.y:
+                self.rect.y += self.speed
+            if ball.rect.y < self.rect.y:
+                self.rect.y -= self.speed
+    def make_hitbox(self):
+        self.hitbox = Rect(0, 0, info.current_w//100, info.current_h//5)
+
+
 class Ball(Unit):
+    p1 = 0
+    p2 = 0
     def move(self):
         self.rect.y -= self.speed_y
         self.rect.x -= self.speed_x
@@ -40,20 +64,30 @@ class Ball(Unit):
             self.rect.centerx = info.current_w//2
             self.rect.centery = info.current_h//2
             time.wait(1000)
+            wall.can_move = True
+            self.p1 += 1            
         if self.rect.left < 0:
             self.speed_x *= -1
             self.rect.centerx = info.current_w//2
             self.rect.centery = info.current_h//2
             time.wait(1000)
+            wall.can_move = True
+            self.p2 += 1
     def collide(self):
         if self.rect.colliderect(player_1.hitbox):
-            self.speed_x = -5
+            wall.can_move = True
+            self.speed_x = randint(-10, -5)
+        if self.rect.colliderect(wall.hitbox):
+            wall.can_move = False
+            self.speed_x = randint(5, 10)
 
 
 player_1 = Player("player.png", info.current_w//10, info.current_h//2, info.current_w//5, info.current_h//5, 0, 10)
 player_1.make_hitbox()
 cross = Unit("Cross Quit.png", info.current_w//1.05, info.current_h//9, info.current_h//15, info.current_h//15, 0, 0)
 ball = Ball("Ball.png", info.current_w//2, info.current_h//2, info.current_w//20, info.current_w//20, 5, 5)
+wall = Wall("player.png", info.current_w//1.1, info.current_h//2, info.current_w//5, info.current_h//5, 0, 3)
+wall.make_hitbox()
 
 fps = time.Clock()
 game = True
@@ -68,8 +102,11 @@ while game:
     cross.draw()
     player_1.draw()
     player_1.move()
+    wall.draw()
+    wall.move()
     ball.draw()
     ball.move()
     ball.collide()
+    update_score()
     display.update()
     fps.tick(60)
